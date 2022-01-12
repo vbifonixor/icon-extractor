@@ -1,5 +1,10 @@
 require('dotenv').config();
 const superagent = require('superagent');
+const path = require('path');
+const fs = require('fs/promises');
+const async = require('async');
+const mkdirp = require('mkdirp');
+const rimraf = require('rimraf');
 
 const {FIGMA_TOKEN} = process.env;
 
@@ -22,6 +27,15 @@ const PREFIXES = {
   [Types.Illustration]: 'illustration-',
   [Types.Stub]: 'stub-',
 };
+
+const BASE_DIR = '/src/components/Icon/img/';
+const DIRECTORIES_BY_TYPES = {
+  [Types.Mono]: 'mono/',
+  [Types.Multi]: 'multi/',
+  [Types.Illustration]: 'illustrations/',
+};
+
+const MONOCHROME_BASE_COLOR = '#2D2F43';
 
 const getTypeByPrefix = (name) => {
   return Object.entries(PREFIXES).reduce((acc, [type, prefix]) => {
@@ -99,5 +113,75 @@ async function main() {
       return acc;
     }, [])
     .filter(({type}) => !IGNORED_TYPES.includes(type));
+
+  let downloadableIcons;
+
+  try {
+    const iconUrls = (
+      await agent
+        .get(`${FIGMA_API_HOST}/images/${ICONS_FILE_KEY}`)
+        .query({
+          ids: iconNodes.map(({id}) => id).join(','),
+          format: 'svg',
+        })
+        .set('X-FIGMA-TOKEN', FIGMA_TOKEN)
+    ).body.images;
+
+    downloadableIcons = iconNodes.map((icon) => ({
+      ...icon,
+      url: iconUrls[icon.id],
+    }));
+  } catch (error) {
+    console.error('Something terrible happened!');
+    console.log(error);
+    process.exit(1);
+  }
+
+  const folderPath = path.join(process.cwd(), BASE_DIR);
+  await new Promise((resolve) => rimraf(folderPath, () => resolve()));
+  await mkdirp(folderPath);
+
+  await Promise.all(
+    Object.values(DIRECTORIES_BY_TYPES).map(async (dirName) =>
+      mkdirp(path.join(folderPath, dirName)),
+    ),
+  );
+
+  await async.parallelLimit(
+    downloadableIcons.map(({name, url, type}) => async (cb) => {
+      try {
+        // Загружаем иконки. Уже без заголовка с токеном фигмы,
+        // поскольку url'ы ведут в s3
+        const icon = (await agent.get(url).retry(3)).body;
+
+        let transformedIcon;
+
+        // При необходимости мы можем видоизменить наши иконки перед сохранением.
+        if (type === Types.Mono) {
+          transformedIcon = icon
+            .toString()
+            .replaceAll(MONOCHROME_BASE_COLOR, 'currentColor');
+        }
+
+        await fs.writeFile(
+          path.join(
+            folderPath,
+            DIRECTORIES_BY_TYPES[type],
+            `${name}.svg`,
+          ),
+          transformedIcon || icon,
+        );
+        cb?.();
+      } catch (e) {
+        if (cb) {
+          cb?.(e);
+        } else {
+          throw e;
+        }
+      }
+    }),
+    100,
+  );
 }
+
 main();
