@@ -155,19 +155,21 @@ async function main() {
         const icon = (await agent.get(url).retry(3)).body;
 
         let transformedIcon;
+        let extension = '.svg';
 
         // При необходимости мы можем видоизменить наши иконки перед сохранением.
         if (type === Types.Mono) {
           transformedIcon = icon
             .toString()
             .replaceAll(MONOCHROME_BASE_COLOR, 'currentColor');
+          extension = '.jsx.svg';
         }
 
         await fs.writeFile(
           path.join(
             folderPath,
             DIRECTORIES_BY_TYPES[type],
-            `${name}.svg`,
+            `${name}${extension}`,
           ),
           transformedIcon || icon,
         );
