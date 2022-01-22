@@ -387,30 +387,42 @@ module.exports = function (webpackEnv) {
               },
             },
             {
-              test: /\.svg$/,
-              use: [
+              test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
+              include: path.resolve(__dirname, '../src'),
+              oneOf: [
                 {
-                  loader: require.resolve('@svgr/webpack'),
-                  options: {
-                    prettier: false,
-                    svgo: false,
-                    svgoConfig: {
-                      plugins: [{removeViewBox: false}],
-                    },
-                    titleProp: true,
-                    ref: true,
-                  },
+                  test: /\.inline\.svg(\?v=\d+\.\d+\.\d+)?$/,
+                  use: 'raw-loader',
                 },
                 {
-                  loader: require.resolve('file-loader'),
-                  options: {
-                    name: 'static/media/[name].[hash].[ext]',
-                  },
+                  test: /\.jsx\.svg(\?v=\d+\.\d+\.\d+)?$/,
+                  use: [
+                    {
+                      loader: '@svgr/webpack',
+                      options: {
+                        dimensions: true,
+                        svgoConfig: {
+                          plugins: {
+                            removeViewBox: false,
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+                {
+                  use: [
+                    {
+                      loader: 'url-loader',
+                      options: {
+                        limit: '2048',
+                        mimetype: 'image/svg+xml',
+                        esModule: false,
+                      },
+                    },
+                  ],
                 },
               ],
-              issuer: {
-                and: [/\.(ts|tsx|js|jsx|md|mdx)$/],
-              },
             },
             // Process application JS with Babel.
             // The preset includes JSX, Flow, TypeScript, and some ESnext features.
