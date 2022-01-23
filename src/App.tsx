@@ -12,7 +12,7 @@ function App() {
         <div className="App-logo">
           <Icon type="illustration" name="science" />
         </div>
-        <p>
+        <p className="App-paragraph">
           <span className="App-inline-icon">
             <Icon type="multi" name="sunset-above-ocean" />
           </span>

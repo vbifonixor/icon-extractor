@@ -32,7 +32,7 @@ const BASE_DIR = '/src/components/Icon/img/';
 const DIRECTORIES_BY_TYPES = {
   [Types.Mono]: 'mono/',
   [Types.Multi]: 'multi/',
-  [Types.Illustration]: 'illustrations/',
+  [Types.Illustration]: 'illustration/',
 };
 
 const MONOCHROME_BASE_COLOR = '#2D2F43';
