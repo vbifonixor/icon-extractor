@@ -1,4 +1,5 @@
 import React, {ReactNode, SVGProps, useEffect, useState} from 'react';
+import {Preloader, Sizes as PreloaderSizes} from '../Preloader';
 import loadable from '@loadable/component';
 import './styles.css';
 
@@ -14,6 +15,7 @@ type Props = (
     }
 ) & {
   fallback?: ReactNode;
+  loader?: ReactNode;
 };
 
 type State = {
@@ -28,8 +30,11 @@ const DynamicComponentIcon = loadable(
 const ImageIcon = ({
   type,
   name,
+  loader,
   className,
-}: Pick<Props, 'type' | 'name'> & {className?: string}) => {
+}: Pick<Props, 'type' | 'name' | 'loader'> & {
+  className?: string;
+}) => {
   const [image, setImage] = useState<null | string>(null);
 
   const [error, setError] = useState<unknown>(null);
@@ -55,12 +60,9 @@ const ImageIcon = ({
     return <img src={image} alt={name} className={className} />;
   }
 
-  return null;
+  return <>{loader}</>;
 };
-export class Icon extends React.PureComponent<
-  Props,
-  {hasError: false}
-> {
+export class Icon extends React.PureComponent<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -86,7 +88,7 @@ export class Icon extends React.PureComponent<
   }
 
   render() {
-    const {type, name, fallback = null} = this.props;
+    const {type, name, fallback = null, loader = null} = this.props;
     const {hasError} = this.state;
 
     if (hasError) {
@@ -99,6 +101,10 @@ export class Icon extends React.PureComponent<
           <DynamicComponentIcon
             type={type}
             name={name}
+            // fallback prop for loadable compnents means
+            // "the thing that renders when component is being loaded"
+            // more: https://loadable-components.com/docs/fallback/
+            fallback={<Preloader />}
             className="icon icon-mono"
           />
         );
@@ -107,6 +113,7 @@ export class Icon extends React.PureComponent<
           <ImageIcon
             type={type}
             name={name}
+            loader={loader || <Preloader />}
             className="icon icon-multi"
           />
         );
@@ -115,6 +122,9 @@ export class Icon extends React.PureComponent<
           <ImageIcon
             type={type}
             name={name}
+            loader={
+              loader || <Preloader size={PreloaderSizes.LARGE} />
+            }
             className="icon icon-illustration"
           />
         );
