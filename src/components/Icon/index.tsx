@@ -1,8 +1,8 @@
-import React, {SVGProps, useEffect, useState} from 'react';
+import React, {ReactNode, SVGProps, useEffect, useState} from 'react';
 import loadable from '@loadable/component';
 import './styles.css';
 
-type Props =
+type Props = (
   | {
       type: 'mono';
       name: string;
@@ -11,7 +11,14 @@ type Props =
   | {
       type: 'multi' | 'illustration';
       name: string;
-    };
+    }
+) & {
+  fallback?: ReactNode;
+};
+
+type State = {
+  hasError?: boolean;
+};
 
 const DynamicComponentIcon = loadable(
   (props: SVGProps<SVGSVGElement> & Pick<Props, 'type' | 'name'>) =>
@@ -25,6 +32,12 @@ const ImageIcon = ({
 }: Pick<Props, 'type' | 'name'> & {className?: string}) => {
   const [image, setImage] = useState<null | string>(null);
 
+  const [error, setError] = useState<unknown>(null);
+
+  if (error) {
+    throw error;
+  }
+
   useEffect(() => {
     (async function getImage() {
       try {
@@ -32,8 +45,8 @@ const ImageIcon = ({
           `./img/${type}/${name}.svg`
         )) as {default: string};
         setImage(loadedImage.default);
-      } catch (error) {
-        // Do nothing for now
+      } catch (err) {
+        setError(err);
       }
     })();
   }, [type, name]);
@@ -44,9 +57,41 @@ const ImageIcon = ({
 
   return null;
 };
-export class Icon extends React.Component<Props> {
+export class Icon extends React.PureComponent<
+  Props,
+  {hasError: false}
+> {
+  constructor(props: Props) {
+    super(props);
+
+    this.state = {
+      hasError: false,
+    };
+  }
+
+  static getDerivedStateFromError() {
+    return {hasError: true};
+  }
+
+  override componentDidUpdate({
+    name: prevName,
+    type: prevType,
+  }: Props) {
+    const {name, type} = this.props;
+    const {hasError} = this.state;
+
+    if (hasError && (name !== prevName || type !== prevType)) {
+      this.setState({hasError: false});
+    }
+  }
+
   render() {
-    const {type, name} = this.props;
+    const {type, name, fallback = null} = this.props;
+    const {hasError} = this.state;
+
+    if (hasError) {
+      return fallback;
+    }
 
     switch (type) {
       case 'mono':
