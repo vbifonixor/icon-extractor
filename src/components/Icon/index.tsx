@@ -1,17 +1,26 @@
 import React, {ReactNode, SVGProps, useEffect, useState} from 'react';
 import {Preloader, Sizes as PreloaderSizes} from '../Preloader';
+import {
+  MonochromeIconNames,
+  MulticolorIconNames,
+  IllustrationsNames,
+} from './iconNames';
 import loadable from '@loadable/component';
 import './styles.css';
 
 type Props = (
   | {
       type: 'mono';
-      name: string;
+      name: MonochromeIconNames;
       fill?: string;
     }
   | {
-      type: 'multi' | 'illustration';
-      name: string;
+      type: 'multi';
+      name: MulticolorIconNames;
+    }
+  | {
+      type: 'illustration';
+      name: IllustrationsNames;
     }
 ) & {
   fallback?: ReactNode;

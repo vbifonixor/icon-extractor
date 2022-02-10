@@ -28,7 +28,8 @@ const PREFIXES = {
   [Types.Stub]: 'stub-',
 };
 
-const BASE_DIR = '/src/components/Icon/img/';
+const BASE_DIR = '/src/components/Icon';
+const IMG_DIR = `${BASE_DIR}/img/`;
 const DIRECTORIES_BY_TYPES = {
   [Types.Mono]: 'mono/',
   [Types.Multi]: 'multi/',
@@ -64,6 +65,9 @@ const transformFigmaNode = (
         : parentType,
   };
 };
+
+const generateUnionString = (names) =>
+  names.length ? ["'", names.join("' | '"), "'"].join('') : 'never';
 
 async function main() {
   if (!FIGMA_TOKEN) {
@@ -137,7 +141,7 @@ async function main() {
     process.exit(1);
   }
 
-  const folderPath = path.join(process.cwd(), BASE_DIR);
+  const folderPath = path.join(process.cwd(), IMG_DIR);
   await new Promise((resolve) => rimraf(folderPath, () => resolve()));
   await mkdirp(folderPath);
 
@@ -183,6 +187,30 @@ async function main() {
       }
     }),
     100,
+  );
+
+  const names = downloadableIcons.reduce(
+    (acc, {name, type}) => {
+      return {...acc, [type]: [...acc[type], name]};
+    },
+    {
+      [Types.Mono]: [],
+      [Types.Multi]: [],
+      [Types.Illustration]: [],
+    },
+  );
+
+  const typedef = `export type MonochromeIconNames = ${generateUnionString(
+    names[Types.Mono],
+  )};\nexport type MulticolorIconNames = ${generateUnionString(
+    names[Types.Multi],
+  )};\nexport type IllustrationsNames = ${generateUnionString(
+    names[Types.Illustration],
+  )};\n`;
+
+  await fs.writeFile(
+    path.join(process.cwd(), `${BASE_DIR}/iconNames.ts`),
+    typedef,
   );
 }
 

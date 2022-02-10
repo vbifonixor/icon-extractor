@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
-    "generate-icons": "node ./scripts/generate-icons.js"
+    "generate-icons": "node ./scripts/generate-icons.js",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
   },
   "dependencies": {
     "@babel/core": "^7.16.0",
@@ -64,6 +66,12 @@
     "workbox-webpack-plugin": "^6.4.1"
   },
   "devDependencies": {
+    "@storybook/addon-actions": "^6.5.0-alpha.39",
+    "@storybook/addon-essentials": "^6.5.0-alpha.39",
+    "@storybook/addon-links": "^6.5.0-alpha.39",
+    "@storybook/builder-webpack5": "^6.5.0-alpha.39",
+    "@storybook/manager-webpack5": "^6.5.0-alpha.39",
+    "@storybook/react": "^6.5.0-alpha.39",
     "nodemon": "1.18.4"
   },
   "browserslist": {
