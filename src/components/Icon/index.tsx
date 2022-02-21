@@ -34,6 +34,7 @@ type State = {
 const DynamicComponentIcon = loadable(
   (props: SVGProps<SVGSVGElement> & Pick<Props, 'type' | 'name'>) =>
     import(`./img/${props.type}/${props.name}.jsx.svg`),
+  {cacheKey: ({type, name}) => `${type}-${name}`},
 );
 
 const ImageIcon = ({
