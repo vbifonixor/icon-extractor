@@ -212,6 +212,11 @@ async function main() {
     path.join(process.cwd(), `${BASE_DIR}/iconNames.ts`),
     typedef,
   );
+
+  await fs.writeFile(
+    path.join(process.cwd(), `${BASE_DIR}/catalog.json`),
+    JSON.stringify(names),
+  );
 }
 
 main();
