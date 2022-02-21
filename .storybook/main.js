@@ -11,24 +11,6 @@ module.exports = {
   addons: ['@storybook/addon-links', '@storybook/addon-essentials'],
   framework: '@storybook/react',
   webpackFinal: async (config) => {
-    // console.log(config.module.rules);
-    // remove svg from existing rule
-    // config.module.rules = config.module.rules.map((rule) => {
-    // if (
-    // String(rule.test) ===
-    // String(
-    // /\.(svg|ico|jpg|jpeg|png|apng|gif|eot|otf|webp|ttf|woff|woff2|cur|ani|pdf)(\?.*)?$/,
-    // )
-    // ) {
-    // return {
-    // ...rule,
-    // test: /\.(ico|jpg|jpeg|png|apng|gif|eot|otf|webp|ttf|woff|woff2|cur|ani|pdf)(\?.*)?$/,
-    // };
-    // }
-
-    // return rule;
-    // });
-    console.log(__dirname);
     const svgRule = {
       test: /\.svg(\?v=\d+\.\d+\.\d+)?$/,
       include: path.resolve(__dirname, '../src'),
