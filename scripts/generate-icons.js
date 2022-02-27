@@ -5,6 +5,7 @@ const fs = require('fs/promises');
 const async = require('async');
 const mkdirp = require('mkdirp');
 const rimraf = require('rimraf');
+const chalk = require('chalk');
 
 const {FIGMA_TOKEN} = process.env;
 
@@ -69,16 +70,33 @@ const transformFigmaNode = (
 const generateUnionString = (names) =>
   names.length ? ["'", names.join("' | '"), "'"].join('') : 'never';
 
+const logger = {
+  info: (text) =>
+    console.log(
+      `${chalk.black.bgWhite(' INFO: '.padEnd(10))} ${text}`,
+    ),
+  success: (text) =>
+    console.log(
+      `${chalk.black.bgGreen(' SUCCESS: '.padEnd(10))} ${text}`,
+    ),
+  error: (text) =>
+    console.log(
+      `${chalk.black.bgRed(' ERROR: '.padEnd(10))} ${text}`,
+    ),
+};
+
 async function main() {
   if (!FIGMA_TOKEN) {
-    console.error(
+    logger.error(
       'No figma token found! Make sure FIGMA_TOKEN is in your .env file or is in your environment variables',
     );
+
     process.exit(1);
   }
 
   let figmaDocument;
 
+  logger.info('Getting info about icons document frames...');
   try {
     figmaDocument = (
       await agent
@@ -86,11 +104,14 @@ async function main() {
         .set('X-FIGMA-TOKEN', FIGMA_TOKEN)
     ).body;
   } catch (error) {
-    console.error('Something terrible happened!');
+    logger.error(
+      'Could not fetch figma document tree. Figma API error message:',
+    );
     console.log(error);
     process.exit(1);
   }
 
+  logger.info('Traversing figma tree to get icon components...');
   const iconNodes = figmaDocument?.document?.children
     .map(({children}) => children)
     .reduce((acc, pageNodes) => [...acc, ...pageNodes], [])
@@ -120,6 +141,7 @@ async function main() {
 
   let downloadableIcons;
 
+  logger.info('Getting links to exported SVGs...');
   try {
     const iconUrls = (
       await agent
@@ -136,11 +158,14 @@ async function main() {
       url: iconUrls[icon.id],
     }));
   } catch (error) {
-    console.error('Something terrible happened!');
+    logger.error(
+      'Failed to fetch URLs to exported icon nodes. Figma API error message:',
+    );
     console.log(error);
     process.exit(1);
   }
 
+  logger.info('Recreating folder structure...');
   const folderPath = path.join(process.cwd(), IMG_DIR);
   await new Promise((resolve) => rimraf(folderPath, () => resolve()));
   await mkdirp(folderPath);
@@ -151,6 +176,7 @@ async function main() {
     ),
   );
 
+  logger.info(`Downloading ${downloadableIcons.length} icons...`);
   await async.parallelLimit(
     downloadableIcons.map(({name, url, type}) => async (cb) => {
       try {
@@ -179,6 +205,10 @@ async function main() {
         );
         cb?.();
       } catch (e) {
+        logger.error(
+          `Failed to fetch icon ${name} of type ${type}. Original error message/object:`,
+        );
+        console.log(e?.message || e);
         if (cb) {
           cb?.(e);
         } else {
@@ -188,6 +218,8 @@ async function main() {
     }),
     100,
   );
+
+  logger.info('Exporting typings...');
 
   const names = downloadableIcons.reduce(
     (acc, {name, type}) => {
@@ -213,9 +245,15 @@ async function main() {
     typedef,
   );
 
+  logger.info('Exporting catalog for storybook...');
+
   await fs.writeFile(
     path.join(process.cwd(), `${BASE_DIR}/catalog.json`),
     JSON.stringify(names),
+  );
+
+  logger.success(
+    'Done! Now use <Icon /> component to insert icons into your layout or run storybook to find the icon needed!',
   );
 }
 
