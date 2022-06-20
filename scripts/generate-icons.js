@@ -2,7 +2,6 @@ require('dotenv').config();
 const superagent = require('superagent');
 const path = require('path');
 const fs = require('fs/promises');
-const async = require('async');
 const chalk = require('chalk');
 
 const {FIGMA_TOKEN} = process.env;
@@ -175,45 +174,52 @@ async function main() {
   );
 
   logger.info(`Downloading ${downloadableIcons.length} icons...`);
-  await async.parallelLimit(
-    downloadableIcons.map(({name, url, type}) => async (cb) => {
-      try {
-        // Загружаем иконки. Уже без заголовка с токеном фигмы,
-        // поскольку url'ы ведут в s3
-        const icon = (await agent.get(url).retry(3)).body;
 
-        let transformedIcon;
-        let extension = '.svg';
+  const pLimit = (await import('p-limit')).default;
 
-        // При необходимости мы можем видоизменить наши иконки перед сохранением.
-        if (type === Types.Mono) {
-          transformedIcon = icon
-            .toString()
-            .replaceAll(MONOCHROME_BASE_COLOR, 'currentColor');
-          extension = '.jsx.svg';
+  const limit = pLimit(100);
+
+  await Promise.all(
+    downloadableIcons.map(({name, url, type}) =>
+      limit(async (cb) => {
+        try {
+          // Загружаем иконки. Уже без заголовка с токеном фигмы,
+          // поскольку url'ы ведут в s3
+          const icon = (await agent.get(url).retry(3)).body;
+
+          let transformedIcon;
+          let extension = '.svg';
+
+          // При необходимости мы можем видоизменить наши иконки перед сохранением.
+          if (type === Types.Mono) {
+            transformedIcon = icon
+              .toString()
+              .replaceAll(MONOCHROME_BASE_COLOR, 'currentColor');
+            extension = '.jsx.svg';
+          }
+
+          await fs.writeFile(
+            path.join(
+              folderPath,
+              DIRECTORIES_BY_TYPES[type],
+              `${name}${extension}`,
+            ),
+            transformedIcon || icon,
+          );
+          cb?.();
+        } catch (e) {
+          logger.error(
+            `Failed to fetch icon ${name} of type ${type}. Original error message/object:`,
+          );
+          console.log(e?.message || e);
+          if (cb) {
+            cb?.(e);
+          } else {
+            throw e;
+          }
         }
-
-        await fs.writeFile(
-          path.join(
-            folderPath,
-            DIRECTORIES_BY_TYPES[type],
-            `${name}${extension}`,
-          ),
-          transformedIcon || icon,
-        );
-        cb?.();
-      } catch (e) {
-        logger.error(
-          `Failed to fetch icon ${name} of type ${type}. Original error message/object:`,
-        );
-        console.log(e?.message || e);
-        if (cb) {
-          cb?.(e);
-        } else {
-          throw e;
-        }
-      }
-    }),
+      }),
+    ),
     100,
   );
 
