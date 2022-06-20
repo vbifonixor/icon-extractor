@@ -3,8 +3,6 @@ const superagent = require('superagent');
 const path = require('path');
 const fs = require('fs/promises');
 const async = require('async');
-const mkdirp = require('mkdirp');
-const rimraf = require('rimraf');
 const chalk = require('chalk');
 
 const {FIGMA_TOKEN} = process.env;
@@ -167,12 +165,12 @@ async function main() {
 
   logger.info('Recreating folder structure...');
   const folderPath = path.join(process.cwd(), IMG_DIR);
-  await new Promise((resolve) => rimraf(folderPath, () => resolve()));
-  await mkdirp(folderPath);
+  await fs.rm(folderPath, {force: true, recursive: true});
+  await fs.mkdir(folderPath, {recursive: true});
 
   await Promise.all(
     Object.values(DIRECTORIES_BY_TYPES).map(async (dirName) =>
-      mkdirp(path.join(folderPath, dirName)),
+      fs.mkdir(path.join(folderPath, dirName), {recursive: true}),
     ),
   );
 
